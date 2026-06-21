@@ -1,0 +1,335 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Video Downloader</title>
+    <style>
+        :root {
+            --primary: #00ff66;
+            --primary-glow: rgba(0, 255, 102, 0.3);
+            --bg-dark: #0a0a0c;
+            --card-bg: #121216;
+            --text-main: #ffffff;
+            --text-muted: #8a8a98;
+            --border-color: #22222b;
+        }
+
+        body { 
+            background: var(--bg-dark); 
+            color: var(--text-main); 
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; 
+            display: flex; 
+            justify-content: center; 
+            align-items: center; 
+            min-height: 100vh; 
+            margin: 0;
+            overflow-x: hidden;
+        }
+
+        body::before {
+            content: '';
+            position: absolute;
+            width: 300px;
+            height: 300px;
+            background: var(--primary-glow);
+            filter: blur(150px);
+            border-radius: 50%;
+            top: 10%;
+            left: 10%;
+            z-index: -1;
+        }
+
+        .container { 
+            width: 100%; 
+            max-width: 550px; 
+            background: var(--card-bg);
+            border: 1px solid var(--border-color); 
+            border-radius: 16px; 
+            padding: 35px; 
+            box-shadow: 0 20px 40px rgba(0,0,0,0.5), 0 0 50px rgba(0, 255, 102, 0.03);
+            backdrop-filter: blur(10px);
+            transition: all 0.5s ease;
+            animation: fadeIn 0.6s ease-out;
+        }
+
+        h2 {
+            text-align: center;
+            margin-top: 0;
+            font-size: 28px;
+            letter-spacing: 2px;
+            background: linear-gradient(45deg, #fff, var(--primary));
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            margin-bottom: 30px;
+        }
+
+        .input-group {
+            position: relative;
+            margin-bottom: 20px;
+        }
+
+        input[type="text"] {
+            width: 100%; 
+            padding: 15px 20px; 
+            background: #181822; 
+            color: #fff; 
+            border: 1px solid var(--border-color);
+            border-radius: 10px;
+            font-size: 15px;
+            box-sizing: border-box;
+            transition: all 0.3s ease;
+        }
+
+        input[type="text"]:focus {
+            outline: none;
+            border-color: var(--primary);
+            box-shadow: 0 0 15px var(--primary-glow);
+            background: #1c1c28;
+        }
+
+        .btn { 
+            background: var(--primary); 
+            color: #000;
+            border: none; 
+            padding: 14px; 
+            font-weight: bold; 
+            font-size: 16px;
+            cursor: pointer; 
+            width: 100%; 
+            border-radius: 10px;
+            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+            box-shadow: 0 4px 15px var(--primary-glow);
+        }
+
+        .btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 6px 20px rgba(0, 255, 102, 0.5);
+            opacity: 0.95;
+        }
+
+        .btn-back {
+            background: #1c1c28;
+            color: var(--text-main);
+            border: 1px solid var(--border-color);
+            width: auto;
+            padding: 8px 16px;
+            margin-bottom: 20px;
+            box-shadow: none;
+        }
+
+        .btn-back:hover {
+            background: #252535;
+            box-shadow: none;
+        }
+
+        .hidden { display: none !important; }
+
+        #step-2 {
+            animation: slideUp 0.5s ease-out;
+        }
+
+        #video-thumbnail { 
+            width: 100%; 
+            max-width: 320px; 
+            display: block; 
+            margin: 0 auto 20px auto; 
+            border-radius: 12px; 
+            box-shadow: 0 10px 25px rgba(0,0,0,0.4);
+            border: 1px solid rgba(255,255,255,0.1);
+        }
+
+        #video-title { 
+            font-size: 16px;
+            font-weight: 500;
+            line-height: 1.4;
+            text-align: center; 
+            margin-bottom: 25px;
+            color: var(--text-main);
+        }
+
+        .tabs { 
+            display: flex; 
+            background: #181822;
+            padding: 5px;
+            border-radius: 10px;
+            margin-bottom: 20px; 
+        }
+
+        .tab-btn { 
+            background: transparent; 
+            color: var(--text-muted); 
+            border: none; 
+            padding: 12px; 
+            cursor: pointer; 
+            flex: 1; 
+            font-size: 15px;
+            font-weight: 600;
+            border-radius: 8px;
+            transition: all 0.3s ease;
+        }
+
+        .tab-btn.active { 
+            background: var(--card-bg);
+            color: var(--primary); 
+            box-shadow: 0 4px 10px rgba(0,0,0,0.2);
+        }
+
+        table { 
+            width: 100%; 
+            border-collapse: collapse; 
+        }
+
+        tr { 
+            border-bottom: 1px solid var(--border-color); 
+            transition: background 0.2s ease;
+        }
+
+        tr:hover {
+            background: rgba(255, 255, 255, 0.02);
+        }
+
+        td { 
+            padding: 14px 10px; 
+            font-size: 15px;
+        }
+        
+        td:nth-child(2) {
+            color: var(--text-muted);
+        }
+
+        .table-btn-download {
+            padding: 8px 16px;
+            font-size: 14px;
+            width: auto;
+            float: right;
+        }
+
+        .spinner { 
+            width: 14px; 
+            height: 14px; 
+            border: 2px solid #000; 
+            border-top: 2px solid transparent; 
+            border-radius: 50%; 
+            animation: spin 0.8s linear infinite; 
+            display: inline-block; 
+            margin-right: 8px; 
+            vertical-align: middle;
+        }
+
+        @keyframes fadeIn {
+            from { opacity: 0; transform: scale(0.98); }
+            to { opacity: 1; transform: scale(1); }
+        }
+
+        @keyframes slideUp {
+            from { opacity: 0; transform: translateY(20px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        @keyframes spin { 
+            0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } 
+        }
+    </style>
+</head>
+<body>
+
+    <div class="container">
+        <h2>VIDEO DOWNLOADER</h2>
+        
+        <div id="step-1">
+            <div class="input-group">
+           <input type="text" id="video-url" placeholder="Paste any video or audio link here...">
+            </div>
+            <button class="btn" id="next-btn" onclick="fetchData()">Next</button>
+        </div>
+
+        <div id="step-2" class="hidden">
+            <button class="btn btn-back" onclick="location.reload()">← Back</button>
+            <img id="video-thumbnail" src="" alt="Thumbnail">
+            <div id="video-title"></div>
+            
+            <div class="tabs">
+                <button class="tab-btn active" onclick="switchTab('video')" id="tab-video">Video</button>
+                <button class="tab-btn" onclick="switchTab('audio')" id="tab-audio">Audio</button>
+            </div>
+            
+            <table>
+                <tbody id="table-body"></tbody>
+            </table>
+        </div>
+    </div>
+
+    <script>
+        const content = {
+            video: [
+                {q: '1080p', f: 'MP4 Premium'}, 
+                {q: '720p', f: 'MP4 High'},
+                {q: '480p', f: 'MP4 Medium'},
+                {q: '360p', f: 'MP4 Low'},
+                {q: '240p', f: 'MP4 Very Low'},
+                {q: '144p', f: 'MP4 Lowest'}
+            ],
+            audio: [
+                {q: 'Audio', f: 'MP3 High Quality'}
+            ]
+        };
+
+        async function fetchData() {
+            const url = document.getElementById('video-url').value;
+            if(!url) return alert('Please paste a link first!');
+            
+            const nextBtn = document.getElementById('next-btn');
+            nextBtn.disabled = true;
+            nextBtn.innerHTML = '<span class="spinner"></span> Loading Details...';
+
+            try {
+                const res = await fetch('/api/info', {method: 'POST', headers: {'Content-Type': 'application/json'}, body: JSON.stringify({url})});
+                const d = await res.json();
+                if(d.success) {
+                    document.getElementById('video-thumbnail').src = d.thumbnail;
+                    document.getElementById('video-title').innerText = d.title;
+                    document.getElementById('step-1').classList.add('hidden');
+                    document.getElementById('step-2').classList.remove('hidden');
+                    switchTab('video');
+                } else {
+                    alert('Error fetching video info. Check link.');
+                }
+            } catch (err) {
+                alert('Server communication error.');
+            } finally {
+                nextBtn.disabled = false;
+                nextBtn.innerText = 'Next';
+            }
+        }
+
+        function switchTab(t) {
+            document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+            document.getElementById('tab-'+t).classList.add('active');
+            const b = document.getElementById('table-body');
+            b.innerHTML = '';
+            content[t].forEach(item => {
+                b.innerHTML += `<tr>
+                    <td style="font-weight:600;">${item.q}</td>
+                    <td>${item.f}</td>
+                    <td><button class="btn table-btn-download" onclick="download('${item.q}', this)">Download</button></td>
+                </tr>`;
+            });
+        }
+
+        function download(q, btn) {
+            const url = document.getElementById('video-url').value;
+            const originalText = btn.innerHTML;
+            btn.disabled = true;
+            btn.innerHTML = '<span class="spinner"></span> Processing...';
+            
+            window.location.href = '/api/download?url=' + encodeURIComponent(url) + '&quality=' + encodeURIComponent(q);
+            
+            setTimeout(() => { 
+                btn.disabled = false; 
+                btn.innerHTML = originalText; 
+            }, 12000);
+        }
+    </script>
+</body>
+</html>
