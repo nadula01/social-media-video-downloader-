@@ -1,208 +1,96 @@
-```python
 import os
 import uuid
-from urllib.parse import urlparse
-
-from flask import (
-    Flask,
-    jsonify,
-    request,
-    send_from_directory,
-    Response,
-    stream_with_context
-)
-
+from flask import Flask, request, jsonify, send_from_directory, Response, stream_with_context
 from flask_cors import CORS
 import yt_dlp
-
 
 app = Flask(__name__)
 CORS(app)
 
-TEMP_DIR = "/tmp"
+@app.route('/')
+def index():
+    return send_from_directory('.', 'index.html')
 
-
-# ---------------------------
-# Helpers
-# ---------------------------
-
-def is_valid_url(url):
-    try:
-        result = urlparse(url)
-        return all([result.scheme, result.netloc])
-    except Exception:
-        return False
-
-
-def get_info_options():
-    return {
-        "format": "best",
-        "nocheckcertificate": True,
-        "geo_bypass": True,
-        "quiet": True
-    }
-
-
-def get_download_options(output_path):
-    return {
-        "format": "best",
-        "outtmpl": output_path,
-        "nocheckcertificate": True,
-        "geo_bypass": True,
-        "quiet": True
-    }
-
-
-def cleanup_file(path):
-    try:
-        if os.path.exists(path):
-            os.remove(path)
-    except Exception:
-        pass
-
-
-# ---------------------------
-# Routes
-# ---------------------------
-
-@app.route("/")
-def home():
-    return send_from_directory(".", "index.html")
-
-
-@app.route("/health")
-def health():
-    return jsonify({
-        "status": "ok",
-        "service": "video-api"
-    })
-
-
-@app.route("/api/info", methods=["POST"])
-def get_video_info():
-
-    data = request.get_json()
-
+@app.route('/api/info', methods=['POST'])
+def get_info():
+    data = request.json
     if not data:
-        return jsonify({
-            "success": False,
-            "error": "No request body provided"
-        }), 400
-
-    url = data.get("url")
-
+        return jsonify({'error': 'No data provided'}), 400
+        
+    url = data.get('url')
     if not url:
-        return jsonify({
-            "success": False,
-            "error": "URL is required"
-        }), 400
-
-    if not is_valid_url(url):
-        return jsonify({
-            "success": False,
-            "error": "Invalid URL"
-        }), 400
-
+        return jsonify({'error': 'URL is required'}), 400
+        
+    ydl_opts = {
+        'format': 'best',
+        'nocheckcertificate': True,
+        'geo_bypass': True,
+        'http_headers': {
+            'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/122.0.0.0 Safari/537.36',
+        }
+    }
+    
     try:
-
-        with yt_dlp.YoutubeDL(get_info_options()) as ydl:
+        with yt_dlp.YoutubeDL(ydl_opts) as ydl:
             info = ydl.extract_info(url, download=False)
-
-        return jsonify({
-            "success": True,
-            "title": info.get("title", "Unknown Title"),
-            "thumbnail": info.get("thumbnail", ""),
-            "duration": info.get("duration", 0)
-        })
-
-    except Exception as e:
-
-        return jsonify({
-            "success": False,
-            "error": str(e)
-        }), 500
-
-
-@app.route("/api/download")
-def download_video():
-
-    url = request.args.get("url")
-
-    if not url:
-        return jsonify({
-            "success": False,
-            "error": "URL is required"
-        }), 400
-
-    if not is_valid_url(url):
-        return jsonify({
-            "success": False,
-            "error": "Invalid URL"
-        }), 400
-
-    filename = f"{uuid.uuid4()}.mp4"
-
-    output_path = (
-        os.path.join(TEMP_DIR, filename)
-        if os.path.exists(TEMP_DIR)
-        else filename
-    )
-
-    try:
-
-        with yt_dlp.YoutubeDL(
-            get_download_options(output_path)
-        ) as ydl:
-            ydl.download([url])
-
-        if not os.path.exists(output_path):
-
             return jsonify({
-                "success": False,
-                "error": "File not created"
-            }), 500
-
-        def generate():
-
-            with open(output_path, "rb") as file:
-
-                while True:
-
-                    chunk = file.read(8192)
-
-                    if not chunk:
-                        break
-
-                    yield chunk
-
-            cleanup_file(output_path)
-
-        return Response(
-            stream_with_context(generate()),
-            content_type="video/mp4",
-            headers={
-                "Content-Disposition":
-                "attachment; filename=video.mp4"
-            }
-        )
-
+                'title': info.get('title', 'Video'),
+                'thumbnail': info.get('thumbnail', ''),
+                'duration': info.get('duration', 0)
+            })
     except Exception as e:
+        return jsonify({'error': str(e)}), 500
 
-        cleanup_file(output_path)
+@app.route('/api/download', methods=['GET'])
+def download_video():
+    url = request.args.get('url')
+    if not url:
+        return "URL is required", 400
+        
+    # සර්වර් එක ඇතුළේ temporary ෆයිල් එකක් විදිහට download කිරීම
+    filename = f"{uuid.uuid4()}.mp4"
+    outtmpl = os.path.join('/tmp', filename) if os.path.exists('/tmp') else filename
+    
+    ydl_opts = {
+        'format': 'best',
+        'outtmpl': outtmpl,
+        'nocheckcertificate': True,
+        'geo_bypass': True,
+        'quiet': True
+    }
+    
+    try:
+        # yt-dlp එකෙන්ම සර්වර් එක ඇතුළට වීඩියෝ එක මුලින්ම බාගත කිරීම
+        with yt_dlp.YoutubeDL(ydl_opts) as ydl:
+            ydl.download([url])
+            
+        if os.path.exists(outtmpl):
+            def generate():
+                with open(outtmpl, 'rb') as f:
+                    while True:
+                        chunk = f.read(8192)
+                        if not chunk:
+                            break
+                        yield chunk
+                # වීඩියෝ එක පරිශීලකයාට යවා ඉවර වූ සැණින් සර්වර් එකෙන් මකා දැමීම (Storage පිරෙන්නේ නැති වෙන්න)
+                try:
+                    os.remove(outtmpl)
+                except:
+                    pass
+                    
+            return Response(
+                stream_with_context(generate()),
+                content_type='video/mp4',
+                headers={"Content-Disposition": "attachment; filename=video.mp4"}
+            )
+        else:
+            return "Download failed on server", 500
+            
+    except Exception as e:
+        if os.path.exists(outtmpl):
+            try: os.remove(outtmpl)
+            except: pass
+        return str(e), 500
 
-        return jsonify({
-            "success": False,
-            "error": str(e)
-        }), 500
-
-
-# ---------------------------
-# Main
-# ---------------------------
-
-if __name__ == "__main__":
-    app.run(
-        host="0.0.0.0",
-        port=int(os.environ.get("PORT", 5000))
-    )
-```
+if __name__ == '__main__':
+    app.run(host='0.0.0.0', port=5000)
