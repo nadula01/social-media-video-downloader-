@@ -1,5 +1,5 @@
 import os
-import urllib.request
+import uuid
 from flask import Flask, request, jsonify, send_from_directory, Response, stream_with_context
 from flask_cors import CORS
 import yt_dlp
@@ -47,50 +47,49 @@ def download_video():
     if not url:
         return "URL is required", 400
         
+    # සර්වර් එක ඇතුළේ temporary ෆයිල් එකක් විදිහට download කිරීම
+    filename = f"{uuid.uuid4()}.mp4"
+    outtmpl = os.path.join('/tmp', filename) if os.path.exists('/tmp') else filename
+    
     ydl_opts = {
         'format': 'best',
+        'outtmpl': outtmpl,
         'nocheckcertificate': True,
         'geo_bypass': True,
-        'http_headers': {
-            'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/122.0.0.0 Safari/537.36',
-        }
+        'quiet': True
     }
     
     try:
+        # yt-dlp එකෙන්ම සර්වර් එක ඇතුළට වීඩියෝ එක මුලින්ම බාගත කිරීම
         with yt_dlp.YoutubeDL(ydl_opts) as ydl:
-            info = ydl.extract_info(url, download=False)
-            download_url = info.get('url')
+            ydl.download([url])
             
-            if not download_url and 'formats' in info:
-                valid_formats = [f for f in info['formats'] if f.get('url')]
-                if valid_formats:
-                    download_url = valid_formats[-1].get('url')
-            
-            if not download_url:
-                return "Could not extract download URL", 404
-                
-            # yt-dlp එකෙන් TikTok වෙනුවෙන්ම හදන රහස් Headers ටික කෙලින්ම ලබා ගැනීම (403 Error එක නැති කරන්නේ මෙන්න මේකෙන්!)
-            ytdl_headers = info.get('http_headers', {})
-            
-            req = urllib.request.Request(download_url, headers=ytdl_headers)
-            res = urllib.request.urlopen(req)
-            
+        if os.path.exists(outtmpl):
             def generate():
-                while True:
-                    chunk = res.read(8192)
-                    if not chunk:
-                        break
-                    yield chunk
-            
+                with open(outtmpl, 'rb') as f:
+                    while True:
+                        chunk = f.read(8192)
+                        if not chunk:
+                            break
+                        yield chunk
+                # වීඩියෝ එක පරිශීලකයාට යවා ඉවර වූ සැණින් සර්වර් එකෙන් මකා දැමීම (Storage පිරෙන්නේ නැති වෙන්න)
+                try:
+                    os.remove(outtmpl)
+                except:
+                    pass
+                    
             return Response(
                 stream_with_context(generate()),
-                content_type=res.headers.get('Content-Type', 'video/mp4'),
-                headers={
-                    "Content-Disposition": "attachment; filename=video.mp4"
-                }
+                content_type='video/mp4',
+                headers={"Content-Disposition": "attachment; filename=video.mp4"}
             )
+        else:
+            return "Download failed on server", 500
             
     except Exception as e:
+        if os.path.exists(outtmpl):
+            try: os.remove(outtmpl)
+            except: pass
         return str(e), 500
 
 if __name__ == '__main__':
