@@ -69,15 +69,10 @@ def download_video():
             if not download_url:
                 return "Could not extract download URL", 404
                 
-            # TikTok බ්ලොක් එක අයින් කර සර්වර් එක හරහා බ්‍රවුසර් එකට Stream කිරීම
-            req = urllib.request.Request(
-                download_url,
-                headers={
-                    'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/122.0.0.0 Safari/537.36',
-                    'Referer': 'https://www.tiktok.com/'
-                }
-            )
+            # yt-dlp එකෙන් TikTok වෙනුවෙන්ම හදන රහස් Headers ටික කෙලින්ම ලබා ගැනීම (403 Error එක නැති කරන්නේ මෙන්න මේකෙන්!)
+            ytdl_headers = info.get('http_headers', {})
             
+            req = urllib.request.Request(download_url, headers=ytdl_headers)
             res = urllib.request.urlopen(req)
             
             def generate():
@@ -87,7 +82,6 @@ def download_video():
                         break
                     yield chunk
             
-            # කෙලින්ම File එකක් විදිහට බ්‍රවුසර් එකට Download වෙන්න සැලැස්වීම
             return Response(
                 stream_with_context(generate()),
                 content_type=res.headers.get('Content-Type', 'video/mp4'),
