@@ -50,11 +50,14 @@ def download_video():
 
     
     if is_audio:
-        ydl_opts = {
-            'outtmpl': os.path.join(DOWNLOAD_FOLDER, f"{title}_{quality}_{unique_id}.%(ext)s"),
-            'quiet': True,
-            'format': 'bestaudio/best',
-        }
+       ydl_opts = {
+    'format': 'best',
+    'http_headers': {
+        'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
+        'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,*/*;q=0.8',
+        'Accept-Language': 'en-US,en;q=0.5',
+    }
+}
     else:
         format_map = {
             '1080p': 'bestvideo[height<=1080][ext=mp4]+bestaudio[ext=m4a]/best[ext=mp4]/best',
