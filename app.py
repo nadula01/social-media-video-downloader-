@@ -18,9 +18,6 @@ progress_data = {
     "eta": "0s"
 }
 
-# -----------------------------
-# VIDEO INFO API
-# -----------------------------
 @app.route("/api/info", methods=["POST"])
 def info():
 
@@ -69,10 +66,6 @@ def info():
     except Exception as e:
         return jsonify({"error": str(e)}), 500
 
-
-# -----------------------------
-# PROGRESS HOOK
-# -----------------------------
 def progress_hook(d):
     global progress_data
 
@@ -95,10 +88,6 @@ def progress_hook(d):
     if d["status"] == "finished":
         progress_data["percent"] = 100
 
-
-# -----------------------------
-# DOWNLOAD API
-# -----------------------------
 @app.route("/api/download")
 def download():
 
@@ -159,10 +148,6 @@ def download():
         }
     )
 
-
-# -----------------------------
-# PROGRESS STREAM (SSE)
-# -----------------------------
 @app.route("/progress")
 def progress():
 
@@ -173,9 +158,5 @@ def progress():
 
     return Response(event_stream(), mimetype="text/event-stream")
 
-
-# -----------------------------
-# RUN SERVER
-# -----------------------------
 if __name__ == "__main__":
     app.run(debug=True, host="0.0.0.0", port=5000)
