@@ -7,6 +7,26 @@ import yt_dlp
 app = Flask(__name__)
 CORS(app)
 
+# YouTube ඇතුළු අනෙකුත් සයිට් වල බ්ලොක් වැළැක්වීමට විශේෂ උපක්‍රම
+YDL_OPTS_BASE = {
+    'format': 'best',
+    'nocheckcertificate': True,
+    'geo_bypass': True,
+    'quiet': True,
+    # YouTube Bot Block එක කැඩීමට iPhone (iOS) සහ Android නිල ඇප් වල Clients භාවිතා කිරීම
+    'extractor_args': {
+        'youtube': {
+            'player_client': ['ios', 'android', 'web_embedded'],
+            'skip': ['dash', 'hls']
+        }
+    },
+    'http_headers': {
+        'User-Agent': 'Mozilla/5.0 (iPhone; CPU iPhone OS 17_5 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/17.5 Mobile/15E148 Safari/604.1',
+        'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8',
+        'Accept-Language': 'en-US,en;q=0.9',
+    }
+}
+
 @app.route('/')
 def index():
     return send_from_directory('.', 'index.html')
@@ -21,17 +41,8 @@ def get_info():
     if not url:
         return jsonify({'error': 'URL is required'}), 400
         
-    ydl_opts = {
-        'format': 'best',
-        'nocheckcertificate': True,
-        'geo_bypass': True,
-        'http_headers': {
-            'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/122.0.0.0 Safari/537.36',
-        }
-    }
-    
     try:
-        with yt_dlp.YoutubeDL(ydl_opts) as ydl:
+        with yt_dlp.YoutubeDL(YDL_OPTS_BASE) as ydl:
             info = ydl.extract_info(url, download=False)
             return jsonify({
                 'title': info.get('title', 'Video'),
@@ -47,20 +58,14 @@ def download_video():
     if not url:
         return "URL is required", 400
         
-    # සර්වර් එක ඇතුළේ temporary ෆයිල් එකක් විදිහට download කිරීම
+    # සර්වර් එක ඇතුළේ Temporary File එකක් ලෙස Download කිරීම (TikTok/YouTube බ්ලොක් වැළැක්වීමට)
     filename = f"{uuid.uuid4()}.mp4"
     outtmpl = os.path.join('/tmp', filename) if os.path.exists('/tmp') else filename
     
-    ydl_opts = {
-        'format': 'best',
-        'outtmpl': outtmpl,
-        'nocheckcertificate': True,
-        'geo_bypass': True,
-        'quiet': True
-    }
+    ydl_opts = YDL_OPTS_BASE.copy()
+    ydl_opts['outtmpl'] = outtmpl
     
     try:
-        # yt-dlp එකෙන්ම සර්වර් එක ඇතුළට වීඩියෝ එක මුලින්ම බාගත කිරීම
         with yt_dlp.YoutubeDL(ydl_opts) as ydl:
             ydl.download([url])
             
@@ -72,7 +77,6 @@ def download_video():
                         if not chunk:
                             break
                         yield chunk
-                # වීඩියෝ එක පරිශීලකයාට යවා ඉවර වූ සැණින් සර්වර් එකෙන් මකා දැමීම (Storage පිරෙන්නේ නැති වෙන්න)
                 try:
                     os.remove(outtmpl)
                 except:
