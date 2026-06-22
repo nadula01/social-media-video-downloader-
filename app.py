@@ -1,7 +1,7 @@
 import os
 import uuid
-import time
 import threading
+import time
 from flask import Flask, request, jsonify, Response
 from flask_cors import CORS
 import yt_dlp
@@ -12,20 +12,25 @@ CORS(app)
 DOWNLOAD_FOLDER = "downloads"
 os.makedirs(DOWNLOAD_FOLDER, exist_ok=True)
 
+# -----------------------------
+# GLOBAL PROGRESS STORE
+# -----------------------------
 progress_data = {
     "percent": 0,
     "speed": "0 KB/s",
     "eta": "0s"
 }
 
+# -----------------------------
+# INFO API
+# -----------------------------
 @app.route("/api/info", methods=["POST"])
 def info():
-
     data = request.json
     url = data.get("url")
 
     if not url:
-        return jsonify({"error": "URL required"}), 400
+        return jsonify({"error": "URL is required"}), 400
 
     try:
         ydl_opts = {
@@ -66,6 +71,10 @@ def info():
     except Exception as e:
         return jsonify({"error": str(e)}), 500
 
+
+# -----------------------------
+# PROGRESS HOOK
+# -----------------------------
 def progress_hook(d):
     global progress_data
 
@@ -88,6 +97,10 @@ def progress_hook(d):
     if d["status"] == "finished":
         progress_data["percent"] = 100
 
+
+# -----------------------------
+# DOWNLOAD API
+# -----------------------------
 @app.route("/api/download")
 def download():
 
@@ -108,14 +121,14 @@ def download():
         "quiet": True
     }
 
-    def run():
+    def run_download():
         try:
             with yt_dlp.YoutubeDL(ydl_opts) as ydl:
                 ydl.download([url])
         except Exception as e:
             print("Download error:", e)
 
-    threading.Thread(target=run).start()
+    threading.Thread(target=run_download).start()
     time.sleep(2)
 
     file_path = None
@@ -148,6 +161,10 @@ def download():
         }
     )
 
+
+# -----------------------------
+# PROGRESS STREAM (SSE)
+# -----------------------------
 @app.route("/progress")
 def progress():
 
@@ -158,5 +175,12 @@ def progress():
 
     return Response(event_stream(), mimetype="text/event-stream")
 
+
+# -----------------------------
+# RENDER ENTRY POINT
+# -----------------------------
+# IMPORTANT: Render uses gunicorn, so this won't run there
+# but kept for local testing
 if __name__ == "__main__":
-    app.run(debug=True, host="0.0.0.0", port=5000)
+    port = int(os.environ.get("PORT", 5000))
+    app.run(host="0.0.0.0", port=port)
