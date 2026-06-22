@@ -1,361 +1,337 @@
-```html
 <!DOCTYPE html>
 <html lang="en">
 <head>
-<meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Video Downloader</title>
+    <style>
+        :root {
+            --primary: #00ff66;
+            --primary-glow: rgba(0, 255, 102, 0.3);
+            --bg-dark: #0a0a0c;
+            --card-bg: #121216;
+            --text-main: #ffffff;
+            --text-muted: #8a8a98;
+            --border-color: #22222b;
+        }
 
-<title>Video Downloader</title>
+        body { 
+            background: var(--bg-dark); 
+            color: var(--text-main); 
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; 
+            display: flex; 
+            justify-content: center; 
+            align-items: center; 
+            min-height: 100vh; 
+            margin: 0;
+            overflow-x: hidden;
+        }
 
-<link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+        body::before {
+            content: '';
+            position: absolute;
+            width: 300px;
+            height: 300px;
+            background: var(--primary-glow);
+            filter: blur(150px);
+            border-radius: 50%;
+            top: 10%;
+            left: 10%;
+            z-index: -1;
+        }
 
-<style>
+        .container { 
+            width: 100%; 
+            max-width: 550px; 
+            background: var(--card-bg);
+            border: 1px solid var(--border-color); 
+            border-radius: 16px; 
+            padding: 35px; 
+            box-shadow: 0 20px 40px rgba(0,0,0,0.5), 0 0 50px rgba(0, 255, 102, 0.03);
+            backdrop-filter: blur(10px);
+            transition: all 0.5s ease;
+            animation: fadeIn 0.6s ease-out;
+        }
 
-*{
-margin:0;
-padding:0;
-box-sizing:border-box;
-font-family:'Poppins',sans-serif;
-}
+        h2 {
+            text-align: center;
+            margin-top: 0;
+            font-size: 28px;
+            letter-spacing: 2px;
+            background: linear-gradient(45deg, #fff, var(--primary));
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            margin-bottom: 30px;
+        }
 
-body{
-min-height:100vh;
-display:flex;
-justify-content:center;
-align-items:center;
-padding:20px;
-background:#07090f;
-overflow-x:hidden;
-}
+        .input-group {
+            position: relative;
+            margin-bottom: 20px;
+        }
 
-body::before{
-content:'';
-position:fixed;
-width:500px;
-height:500px;
-background:#00ff6630;
-filter:blur(200px);
-top:-150px;
-left:-150px;
-z-index:-1;
-}
+        input[type="text"] {
+            width: 100%; 
+            padding: 15px 20px; 
+            background: #181822; 
+            color: #fff; 
+            border: 1px solid var(--border-color);
+            border-radius: 10px;
+            font-size: 15px;
+            box-sizing: border-box;
+            transition: all 0.3s ease;
+        }
 
-body::after{
-content:'';
-position:fixed;
-width:500px;
-height:500px;
-background:#00bfff25;
-filter:blur(200px);
-bottom:-150px;
-right:-150px;
-z-index:-1;
-}
+        input[type="text"]:focus {
+            outline: none;
+            border-color: var(--primary);
+            box-shadow: 0 0 15px var(--primary-glow);
+            background: #1c1c28;
+        }
 
-.container{
-width:100%;
-max-width:600px;
-background:rgba(18,18,25,.85);
-border:1px solid rgba(255,255,255,.08);
-backdrop-filter:blur(20px);
-padding:35px;
-border-radius:24px;
-box-shadow:0 25px 60px rgba(0,0,0,.4);
-animation:fadeIn .5s ease;
-}
+        .btn { 
+            background: var(--primary); 
+            color: #000;
+            border: none; 
+            padding: 14px; 
+            font-weight: bold; 
+            font-size: 16px;
+            cursor: pointer; 
+            width: 100%; 
+            border-radius: 10px;
+            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+            box-shadow: 0 4px 15px var(--primary-glow);
+        }
 
-.logo{
-text-align:center;
-margin-bottom:25px;
-}
+        .btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 6px 20px rgba(0, 255, 102, 0.5);
+            opacity: 0.95;
+        }
 
-.logo h1{
-font-size:32px;
-font-weight:700;
-background:linear-gradient(90deg,#ffffff,#00ff88);
--webkit-background-clip:text;
--webkit-text-fill-color:transparent;
-}
+        .btn-back {
+            background: #1c1c28;
+            color: var(--text-main);
+            border: 1px solid var(--border-color);
+            width: auto;
+            padding: 8px 16px;
+            margin-bottom: 20px;
+            box-shadow: none;
+        }
 
-.logo p{
-color:#8b8b96;
-font-size:14px;
-margin-top:8px;
-}
+        .btn-back:hover {
+            background: #252535;
+            box-shadow: none;
+        }
 
-.input-wrapper{
-display:flex;
-gap:10px;
-margin-bottom:18px;
-}
+        .hidden { display: none !important; }
 
-.input-wrapper input{
-flex:1;
-height:55px;
-background:#11151f;
-border:1px solid #262b36;
-border-radius:14px;
-padding:0 18px;
-color:white;
-font-size:15px;
-transition:.3s;
-}
+        #step-2 {
+            animation: slideUp 0.5s ease-out;
+        }
 
-.input-wrapper input:focus{
-outline:none;
-border-color:#00ff88;
-box-shadow:0 0 20px rgba(0,255,136,.15);
-}
+        #video-thumbnail { 
+            width: 100%; 
+            max-width: 320px; 
+            display: block; 
+            margin: 0 auto 20px auto; 
+            border-radius: 12px; 
+            box-shadow: 0 10px 25px rgba(0,0,0,0.4);
+            border: 1px solid rgba(255,255,255,0.1);
+        }
 
-.paste-btn{
-height:55px;
-padding:0 18px;
-border:none;
-border-radius:14px;
-background:#1d2430;
-color:white;
-font-weight:600;
-cursor:pointer;
-transition:.3s;
-}
+        #video-title { 
+            font-size: 16px;
+            font-weight: 500;
+            line-height: 1.4;
+            text-align: center; 
+            margin-bottom: 25px;
+            color: var(--text-main);
+        }
 
-.paste-btn:hover{
-background:#283242;
-}
+        .tabs { 
+            display: flex; 
+            background: #181822;
+            padding: 5px;
+            border-radius: 10px;
+            margin-bottom: 20px; 
+        }
 
-.main-btn{
-width:100%;
-height:58px;
-border:none;
-border-radius:14px;
-background:linear-gradient(135deg,#00ff88,#00d46f);
-color:black;
-font-size:16px;
-font-weight:700;
-cursor:pointer;
-transition:.3s;
-}
+        .tab-btn { 
+            background: transparent; 
+            color: var(--text-muted); 
+            border: none; 
+            padding: 12px; 
+            cursor: pointer; 
+            flex: 1; 
+            font-size: 15px;
+            font-weight: 600;
+            border-radius: 8px;
+            transition: all 0.3s ease;
+        }
 
-.main-btn:hover{
-transform:translateY(-2px);
-}
+        .tab-btn.active { 
+            background: var(--card-bg);
+            color: var(--primary); 
+            box-shadow: 0 4px 10px rgba(0,0,0,0.2);
+        }
 
-.main-btn:active{
-transform:scale(.98);
-}
+        table { 
+            width: 100%; 
+            border-collapse: collapse; 
+        }
 
-.features{
-margin-top:25px;
-display:grid;
-grid-template-columns:repeat(3,1fr);
-gap:12px;
-}
+        tr { 
+            border-bottom: 1px solid var(--border-color); 
+            transition: background 0.2s ease;
+        }
 
-.feature{
-background:#10141c;
-padding:15px;
-border-radius:14px;
-text-align:center;
-border:1px solid rgba(255,255,255,.05);
-}
+        tr:hover {
+            background: rgba(255, 255, 255, 0.02);
+        }
 
-.feature h4{
-font-size:14px;
-color:white;
-margin-top:8px;
-}
+        td { 
+            padding: 14px 10px; 
+            font-size: 15px;
+        }
+        
+        td:nth-child(2) {
+            color: var(--text-muted);
+        }
 
-.feature span{
-font-size:24px;
-}
+        .table-btn-download {
+            padding: 8px 16px;
+            font-size: 14px;
+            width: auto;
+            float: right;
+        }
 
-.preview{
-margin-top:25px;
-display:none;
-animation:fadeIn .4s ease;
-}
+        .spinner { 
+            width: 14px; 
+            height: 14px; 
+            border: 2px solid #000; 
+            border-top: 2px solid transparent; 
+            border-radius: 50%; 
+            animation: spin 0.8s linear infinite; 
+            display: inline-block; 
+            margin-right: 8px; 
+            vertical-align: middle;
+        }
 
-.preview img{
-width:100%;
-border-radius:16px;
-margin-bottom:15px;
-}
+        @keyframes fadeIn {
+            from { opacity: 0; transform: scale(0.98); }
+            to { opacity: 1; transform: scale(1); }
+        }
 
-.video-title{
-font-size:17px;
-font-weight:600;
-line-height:1.5;
-margin-bottom:20px;
-}
+        @keyframes slideUp {
+            from { opacity: 0; transform: translateY(20px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
 
-.download-btn{
-width:100%;
-height:55px;
-border:none;
-border-radius:14px;
-background:#00ff88;
-color:black;
-font-weight:700;
-cursor:pointer;
-}
-
-.loader{
-width:20px;
-height:20px;
-border:3px solid rgba(0,0,0,.2);
-border-top:3px solid black;
-border-radius:50%;
-animation:spin .8s linear infinite;
-display:inline-block;
-}
-
-@keyframes spin{
-100%{
-transform:rotate(360deg);
-}
-}
-
-@keyframes fadeIn{
-from{
-opacity:0;
-transform:translateY(15px);
-}
-to{
-opacity:1;
-transform:translateY(0);
-}
-}
-
-@media(max-width:600px){
-
-.container{
-padding:20px;
-border-radius:20px;
-}
-
-.logo h1{
-font-size:26px;
-}
-
-.input-wrapper{
-flex-direction:column;
-}
-
-.paste-btn{
-width:100%;
-}
-
-.features{
-grid-template-columns:1fr;
-}
-
-}
-
-</style>
+        @keyframes spin { 
+            0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } 
+        }
+    </style>
 </head>
-
 <body>
 
-<div class="container">
+    <div class="container">
+        <h2>VIDEO DOWNLOADER</h2>
+        
+        <div id="step-1">
+            <div class="input-group">
+           <input type="text" id="video-url" placeholder="Paste any video or audio link here...">
+            </div>
+            <button class="btn" id="next-btn" onclick="fetchData()">Next</button>
+        </div>
 
-<div class="logo">
-<h1>VIDEO DOWNLOADER</h1>
-<p>Download videos quickly and easily</p>
-</div>
+        <div id="step-2" class="hidden">
+            <button class="btn btn-back" onclick="location.reload()">← Back</button>
+            <img id="video-thumbnail" src="" alt="Thumbnail">
+            <div id="video-title"></div>
+            
+            <div class="tabs">
+                <button class="tab-btn active" onclick="switchTab('video')" id="tab-video">Video</button>
+                <button class="tab-btn" onclick="switchTab('audio')" id="tab-audio">Audio</button>
+            </div>
+            
+            <table>
+                <tbody id="table-body"></tbody>
+            </table>
+        </div>
+    </div>
 
-<div id="step1">
+    <script>
+        const content = {
+            video: [
+                {q: '1080p', f: 'MP4 Premium'}, 
+                {q: '720p', f: 'MP4 High'},
+                {q: '480p', f: 'MP4 Medium'},
+                {q: '360p', f: 'MP4 Low'},
+                {q: '240p', f: 'MP4 Very Low'},
+                {q: '144p', f: 'MP4 Lowest'}
+            ],
+            audio: [
+                {q: 'Audio', f: 'MP3 High Quality'}
+            ]
+        };
 
-<div class="input-wrapper">
-<input type="text" id="video-url" placeholder="Paste video link here...">
-<button class="paste-btn" onclick="pasteUrl()">📋 Paste</button>
-</div>
+        async function fetchData() {
+            const url = document.getElementById('video-url').value;
+            if(!url) return alert('Please paste a link first!');
+            
+            const nextBtn = document.getElementById('next-btn');
+            nextBtn.disabled = true;
+            nextBtn.innerHTML = '<span class="spinner"></span> Loading Details...';
 
-<button class="main-btn" onclick="fetchVideo()">
-Get Video
-</button>
+            try {
+                const res = await fetch('/api/info', {method: 'POST', headers: {'Content-Type': 'application/json'}, body: JSON.stringify({url})});
+                const d = await res.json();
+                
+                // මෙන්න මෙතන තමයි වෙනස් කළේ (if(d.success) එක වෙනස් කළා)
+                if(!d.error) {
+                    document.getElementById('video-thumbnail').src = d.thumbnail || 'https://via.placeholder.com/320';
+                    document.getElementById('video-title').innerText = d.title || 'Video Title';
+                    document.getElementById('step-1').classList.add('hidden');
+                    document.getElementById('step-2').classList.remove('hidden');
+                    switchTab('video');
+                } else {
+                    alert('Error: ' + d.error);
+                }
+            } catch (err) {
+                alert('Server communication error.');
+            } finally {
+                nextBtn.disabled = false;
+                nextBtn.innerText = 'Next';
+            }
+        }
 
-<div class="features">
+        function switchTab(t) {
+            document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+            document.getElementById('tab-'+t).classList.add('active');
+            const b = document.getElementById('table-body');
+            b.innerHTML = '';
+            content[t].forEach(item => {
+                b.innerHTML += `<tr>
+                    <td style="font-weight:600;">${item.q}</td>
+                    <td>${item.f}</td>
+                    <td><button class="btn table-btn-download" onclick="download('${item.q}', this)">Download</button></td>
+                </tr>`;
+            });
+        }
 
-<div class="feature">
-<span>⚡</span>
-<h4>Fast</h4>
-</div>
-
-<div class="feature">
-<span>📱</span>
-<h4>Mobile Ready</h4>
-</div>
-
-<div class="feature">
-<span>🎬</span>
-<h4>HD Quality</h4>
-</div>
-
-</div>
-
-</div>
-
-<div class="preview" id="preview">
-
-<img id="thumbnail">
-
-<div class="video-title" id="title">
-Video Title
-</div>
-
-<button class="download-btn">
-Download
-</button>
-
-</div>
-
-</div>
-
-<script>
-
-async function pasteUrl(){
-try{
-const text = await navigator.clipboard.readText();
-document.getElementById("video-url").value=text;
-}
-catch(err){
-alert("Clipboard permission denied");
-}
-}
-
-async function fetchVideo(){
-
-const url=document.getElementById("video-url").value;
-
-if(!url){
-alert("Paste a video link first");
-return;
-}
-
-const btn=document.querySelector(".main-btn");
-
-btn.innerHTML='<span class="loader"></span>';
-btn.disabled=true;
-
-setTimeout(()=>{
-
-document.getElementById("preview").style.display="block";
-
-document.getElementById("thumbnail").src=
-"https://via.placeholder.com/800x450";
-
-document.getElementById("title").innerText=
-"Video Preview Example";
-
-btn.innerHTML="Get Video";
-btn.disabled=false;
-
-},1500);
-
-}
-
-</script>
-
+        function download(q, btn) {
+            const url = document.getElementById('video-url').value;
+            const originalText = btn.innerHTML;
+            btn.disabled = true;
+            btn.innerHTML = '<span class="spinner"></span> Processing...';
+            
+            window.location.href = '/api/download?url=' + encodeURIComponent(url) + '&quality=' + encodeURIComponent(q);
+            
+            setTimeout(() => { 
+                btn.disabled = false; 
+                btn.innerHTML = originalText; 
+            }, 12000);
+        }
+    </script>
 </body>
 </html>
-```
