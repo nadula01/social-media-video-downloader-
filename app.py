@@ -1,5 +1,6 @@
 import os
 import uuid
+import time
 import threading
 from flask import Flask, request, jsonify, Response
 from flask_cors import CORS
@@ -8,9 +9,9 @@ import yt_dlp
 app = Flask(__name__)
 CORS(app)
 
-# -----------------------------
-# GLOBAL PROGRESS STORE
-# -----------------------------
+DOWNLOAD_FOLDER = "downloads"
+os.makedirs(DOWNLOAD_FOLDER, exist_ok=True)
+
 progress_data = {
     "percent": 0,
     "speed": "0 KB/s",
@@ -18,7 +19,7 @@ progress_data = {
 }
 
 # -----------------------------
-# INFO API (VIDEO DETAILS)
+# VIDEO INFO API
 # -----------------------------
 @app.route("/api/info", methods=["POST"])
 def info():
@@ -30,7 +31,6 @@ def info():
         return jsonify({"error": "URL required"}), 400
 
     try:
-
         ydl_opts = {
             "quiet": True,
             "nocheckcertificate": True,
@@ -47,9 +47,8 @@ def info():
             if f.get("vcodec") == "none" and f.get("acodec") == "none":
                 continue
 
-            # size calculation
             size = f.get("filesize") or f.get("filesize_approx") or 0
-            size_mb = round(size / (1024 * 1024), 2) if size else "N/A"
+            size_mb = round(size / (1024 * 1024), 2) if size else 0
 
             formats.append({
                 "id": f.get("format_id"),
@@ -69,20 +68,12 @@ def info():
 
     except Exception as e:
         return jsonify({"error": str(e)}), 500
-        import os
-import time
-import threading
-from flask import request, jsonify, Response
-import yt_dlp
 
-DOWNLOAD_FOLDER = "downloads"
-os.makedirs(DOWNLOAD_FOLDER, exist_ok=True)
 
 # -----------------------------
-# PROGRESS HOOK (yt-dlp)
+# PROGRESS HOOK
 # -----------------------------
 def progress_hook(d):
-
     global progress_data
 
     if d["status"] == "downloading":
@@ -118,7 +109,6 @@ def download():
         return "Missing parameters", 400
 
     filename = str(uuid.uuid4())
-
     outtmpl = os.path.join(DOWNLOAD_FOLDER, filename + ".%(ext)s")
 
     ydl_opts = {
@@ -126,27 +116,19 @@ def download():
         "outtmpl": outtmpl,
         "merge_output_format": "mp4",
         "progress_hooks": [progress_hook],
-        "quiet": True,
-        "nocheckcertificate": True,
-        "geo_bypass": True
+        "quiet": True
     }
 
-    def run_download():
-
+    def run():
         try:
             with yt_dlp.YoutubeDL(ydl_opts) as ydl:
                 ydl.download([url])
-
         except Exception as e:
             print("Download error:", e)
 
-    # run in background thread
-    threading.Thread(target=run_download).start()
-
-    # wait a bit for file creation
+    threading.Thread(target=run).start()
     time.sleep(2)
 
-    # find file
     file_path = None
     for f in os.listdir(DOWNLOAD_FOLDER):
         if f.startswith(filename):
@@ -157,7 +139,6 @@ def download():
         return "File not found", 500
 
     def generate():
-
         with open(file_path, "rb") as f:
             while True:
                 chunk = f.read(8192)
@@ -165,7 +146,6 @@ def download():
                     break
                 yield chunk
 
-        # cleanup after sending
         try:
             os.remove(file_path)
         except:
